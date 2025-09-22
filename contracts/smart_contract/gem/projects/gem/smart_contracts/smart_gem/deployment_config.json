@@ -1,0 +1,22 @@
+{
+  "contract_name": "Chronicle of the Ledger Game",
+  "version": "1.0.0",
+  "deployment_date": "2025-09-17T13:07:02.006560",
+  "approval_program_size": 3568,
+  "clear_program_size": 30,
+  "global_state_schema": {
+    "num_byte_slices": 5,
+    "num_ints": 5
+  },
+  "local_state_schema": {
+    "num_byte_slices": 4,
+    "num_ints": 4
+  },
+  "functions": [
+    "stake",
+    "win",
+    "lose",
+    "toggle_pause",
+    "withdraw_commission"
+  ]
+}

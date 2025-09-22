@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Blockchain Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #00ff00;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .button:hover {
+            background: #00cc00;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success { background: rgba(0, 255, 0, 0.2); border: 1px solid #00ff00; }
+        .error { background: rgba(255, 0, 0, 0.2); border: 1px solid #ff0000; color: #ff0000; }
+        .info { background: rgba(0, 255, 255, 0.2); border: 1px solid #00ffff; color: #00ffff; }
+        .log {
+            background: #111;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center;">🔗 Simple Blockchain Test</h1>
+        
+        <div id="status" class="status info">Ready...</div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="button" onclick="testConnection()">Test Connection</button>
+            <button class="button" onclick="testStake()">Test Stake</button>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const MNEMONIC = 'trumpet noodle nature august silly admit famous borrow keep ignore scene sock long inch save uphold riot yard private brush uncover ladder decade abandon recall';
+        const APP_ID = 745921443;
+        const CONTRACT_ADDRESS = '6B3ACCE056A53C7F249A77D81811125170A95BB15A7F7AF1B6716181127DAE4';
+        
+        let algodClient = null;
+        let account = null;
+        let privateKey = null;
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = 'status ' + type;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function testConnection() {
+            try {
+                log('🚀 Starting connection test...');
+                updateStatus('Testing connection...', 'info');
+                
+                // Check if algosdk is loaded
+                if (typeof algosdk === 'undefined') {
+                    throw new Error('Algorand SDK not loaded');
+                }
+                log('✅ Algorand SDK loaded');
+                
+                // Initialize client
+                algodClient = new algosdk.Algodv2('', 'https://testnet-api.algonode.cloud', 443);
+                log('✅ Algorand client created');
+                
+                // Test network connection
+                const status = await algodClient.status().do();
+                log('✅ Network connected - Last round: ' + status['last-round']);
+                
+                // Create account from mnemonic
+                const accountInfo = algosdk.mnemonicToSecretKey(MNEMONIC);
+                account = accountInfo.addr;
+                privateKey = accountInfo.sk;
+                
+                log('✅ Account created from mnemonic');
+                log('   Address: ' + account);
+                log('   Type: ' + typeof account);
+                
+                // Test account info
+                const accountData = await algodClient.accountInformation(account).do();
+                const balance = accountData.amount / 1000000;
+                
+                log('✅ Account info retrieved');
+                log('   Balance: ' + balance.toFixed(3) + ' ALGO');
+                
+                // Test contract info
+                const appInfo = await algodClient.getApplicationByID(APP_ID).do();
+                log('✅ Contract info retrieved');
+                log('   App ID: ' + APP_ID);
+                log('   Creator: ' + appInfo.params.creator);
+                
+                updateStatus('Connection successful!', 'success');
+                
+            } catch (error) {
+                log('❌ Connection test failed: ' + error.message);
+                updateStatus('Connection failed', 'error');
+            }
+        }
+
+        async function testStake() {
+            if (!algodClient || !account) {
+                log('❌ Not connected. Run connection test first.');
+                return;
+            }
+            
+            try {
+                log('🎯 Testing stake function...');
+                updateStatus('Testing stake...', 'info');
+                
+                const params = await algodClient.getTransactionParams().do();
+                log('✅ Transaction params retrieved');
+                
+                const stakeAmount = 1000000; // 1 ALGO
+                
+                // Create payment transaction
+                const paymentTxn = algosdk.makePaymentTxnWithSuggestedParams(
+                    account,
+                    CONTRACT_ADDRESS,
+                    stakeAmount,
+                    undefined,
+                    undefined,
+                    params
+                );
+                log('✅ Payment transaction created');
+                
+                // Create application call transaction
+                const appCallTxn = algosdk.makeApplicationCallTxn(
+                    account,
+                    params,
+                    APP_ID,
+                    algosdk.OnApplicationComplete.NoOpOC,
+                    undefined,
+                    undefined,
+                    [new Uint8Array(Buffer.from('stake'))],
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined
+                );
+                log('✅ App call transaction created');
+                
+                // Group transactions
+                const groupId = algosdk.computeGroupID([paymentTxn, appCallTxn]);
+                paymentTxn.group = groupId;
+                appCallTxn.group = groupId;
+                log('✅ Transactions grouped');
+                
+                // Sign transactions
+                const signedPaymentTxn = paymentTxn.signTxn(privateKey);
+                const signedAppCallTxn = appCallTxn.signTxn(privateKey);
+                log('✅ Transactions signed');
+                
+                // Send transaction
+                const signedGroup = [signedPaymentTxn, signedAppCallTxn];
+                const txId = await algodClient.sendRawTransaction(signedGroup).do();
+                log('✅ Transaction sent: ' + txId);
+                
+                // Wait for confirmation
+                log('⏳ Waiting for confirmation...');
+                const status = await algosdk.waitForConfirmation(algodClient, txId, 4);
+                log('✅ Transaction confirmed in round: ' + status['confirmed-round']);
+                
+                updateStatus('Stake test successful!', 'success');
+                
+            } catch (error) {
+                log('❌ Stake test failed: ' + error.message);
+                updateStatus('Stake test failed', 'error');
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', function() {
+            log('🚀 Page loaded');
+            log('📋 Contract Details:');
+            log('   App ID: ' + APP_ID);
+            log('   Contract Address: ' + CONTRACT_ADDRESS);
+            log('   Network: Algorand Testnet');
+            log('');
+            log('💡 Click "Test Connection" to start');
+        });
+    </script>
+
+    <!-- Load Algorand SDK -->
+    <script src="https://unpkg.com/algosdk@3.0.0/dist/browser/algosdk.min.js"></script>
+</body>
+</html>

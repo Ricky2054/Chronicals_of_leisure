@@ -1,0 +1,318 @@
+#pragma version 8
+txn ApplicationID
+int 0
+==
+bnz main_l21
+txn OnCompletion
+int OptIn
+==
+bnz main_l20
+txn OnCompletion
+int CloseOut
+==
+bnz main_l19
+txna ApplicationArgs 0
+byte "stake"
+==
+bnz main_l18
+txna ApplicationArgs 0
+byte "win"
+==
+bnz main_l17
+txna ApplicationArgs 0
+byte "lose"
+==
+bnz main_l16
+txna ApplicationArgs 0
+byte "toggle_pause"
+==
+bnz main_l12
+txna ApplicationArgs 0
+byte "withdraw_commission"
+==
+bnz main_l11
+int 1
+bnz main_l10
+err
+main_l10:
+int 0
+return
+main_l11:
+txn Sender
+byte "ADMIN_ADDR"
+app_global_get
+==
+assert
+byte "COMMISSION_POOL"
+app_global_get
+int 0
+>
+assert
+itxn_begin
+int pay
+itxn_field TypeEnum
+txn Sender
+itxn_field Receiver
+byte "COMMISSION_POOL"
+app_global_get
+itxn_field Amount
+int 0
+itxn_field Fee
+itxn_submit
+byte "COMMISSION_POOL"
+int 0
+app_global_put
+byte "COMMISSION_WITHDRAWN"
+log
+int 1
+return
+main_l12:
+txn Sender
+byte "ADMIN_ADDR"
+app_global_get
+==
+assert
+byte "PAUSED"
+byte "PAUSED"
+app_global_get
+int 0
+==
+bnz main_l15
+int 0
+main_l14:
+app_global_put
+byte "PAUSE_TOGGLED"
+log
+int 1
+return
+main_l15:
+int 1
+b main_l14
+main_l16:
+byte "PAUSED"
+app_global_get
+int 0
+==
+assert
+int 0
+byte "PLAYER_OPTED_IN"
+app_local_get
+int 1
+==
+assert
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 0
+>
+assert
+int 0
+byte "PLAYER_LOSSES"
+int 0
+byte "PLAYER_LOSSES"
+app_local_get
+int 1
++
+app_local_put
+byte "COMMISSION_POOL"
+byte "COMMISSION_POOL"
+app_global_get
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 50000
+*
+int 1000000
+/
++
+app_global_put
+byte "TOTAL_STAKED"
+byte "TOTAL_STAKED"
+app_global_get
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 50000
+*
+int 1000000
+/
+-
+app_global_put
+itxn_begin
+int pay
+itxn_field TypeEnum
+txn Sender
+itxn_field Receiver
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 50000
+*
+int 1000000
+/
+-
+itxn_field Amount
+int 0
+itxn_field Fee
+itxn_submit
+int 0
+byte "PLAYER_STAKE"
+int 0
+app_local_put
+byte "GAME_LOSS"
+log
+int 1
+return
+main_l17:
+byte "PAUSED"
+app_global_get
+int 0
+==
+assert
+int 0
+byte "PLAYER_OPTED_IN"
+app_local_get
+int 1
+==
+assert
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 0
+>
+assert
+int 0
+byte "PLAYER_WINS"
+int 0
+byte "PLAYER_WINS"
+app_local_get
+int 1
++
+app_local_put
+itxn_begin
+int pay
+itxn_field TypeEnum
+txn Sender
+itxn_field Receiver
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 100000
+*
+int 1000000
+/
++
+itxn_field Amount
+int 0
+itxn_field Fee
+itxn_submit
+byte "TOTAL_STAKED"
+byte "TOTAL_STAKED"
+app_global_get
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+-
+app_global_put
+int 0
+byte "PLAYER_STAKE"
+int 0
+app_local_put
+byte "GAME_WIN"
+log
+int 1
+return
+main_l18:
+byte "PAUSED"
+app_global_get
+int 0
+==
+assert
+int 0
+byte "PLAYER_OPTED_IN"
+app_local_get
+int 1
+==
+assert
+int 0
+byte "PLAYER_STAKE"
+app_local_get
+int 0
+==
+assert
+gtxn 0 Amount
+int 100000
+>=
+assert
+gtxn 0 Receiver
+global CurrentApplicationAddress
+==
+assert
+int 0
+byte "PLAYER_STAKE"
+gtxn 0 Amount
+app_local_put
+byte "TOTAL_STAKED"
+byte "TOTAL_STAKED"
+app_global_get
+gtxn 0 Amount
++
+app_global_put
+byte "GAME_STATE"
+int 1
+app_global_put
+byte "GAME_STAKE"
+log
+int 1
+return
+main_l19:
+int 1
+return
+main_l20:
+byte "PAUSED"
+app_global_get
+int 0
+==
+assert
+int 0
+byte "PLAYER_STAKE"
+int 0
+app_local_put
+int 0
+byte "PLAYER_WINS"
+int 0
+app_local_put
+int 0
+byte "PLAYER_LOSSES"
+int 0
+app_local_put
+int 0
+byte "PLAYER_OPTED_IN"
+int 1
+app_local_put
+int 1
+return
+main_l21:
+byte "GAME_STATE"
+int 0
+app_global_put
+byte "TOTAL_STAKED"
+int 0
+app_global_put
+byte "COMMISSION_POOL"
+int 0
+app_global_put
+byte "ADMIN_ADDR"
+txn Sender
+app_global_put
+byte "PAUSED"
+int 0
+app_global_put
+int 1
+return

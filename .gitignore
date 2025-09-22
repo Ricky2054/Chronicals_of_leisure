@@ -1,0 +1,11 @@
+
+
+# Ignore all assets and large files
+src/**/*.png
+src/**/*.jpg
+src/**/*.psd
+src/**/*.pdf
+public/
+node_modules/
+build/
+sprites/

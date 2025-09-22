@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronicle of the Ledger</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #4a4a4a;
+            background: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #4a4a4a;
+        }
+        
+        #healthBar, #manaBar {
+            width: 200px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #666;
+            border-radius: 10px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        
+        #healthFill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ff6666);
+            width: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        #manaFill {
+            height: 100%;
+            background: linear-gradient(90deg, #4444ff, #6666ff);
+            width: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        #score {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #ffd700;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #4a4a4a;
+            font-size: 12px;
+        }
+        
+        #blockchain {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #4a4a4a;
+            z-index: 100;
+        }
+        
+        .ledger-coin {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .relic {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #ff4444;
+            text-align: center;
+            display: none;
+            z-index: 200;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #4a4a4a, #666);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: linear-gradient(45deg, #666, #888);
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #ffd700;
+            z-index: 300;
+        }
+        
+        #debug {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #4a4a4a;
+            font-size: 10px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .debug-log {
+            color: #00ff00;
+            margin: 2px 0;
+        }
+        
+        .debug-error {
+            color: #ff4444;
+            margin: 2px 0;
+        }
+        
+        .debug-warning {
+            color: #ffaa00;
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div class="loading" id="loading">Loading Chronicle of the Ledger...</div>
+        
+        <canvas id="gameCanvas" width="1024" height="576"></canvas>
+        
+        <div id="ui">
+            <div>Health: <span id="health">100</span>/100</div>
+            <div id="healthBar">
+                <div id="healthFill"></div>
+            </div>
+            <div>Mana: <span id="mana">50</span>/50</div>
+            <div id="manaBar">
+                <div id="manaFill"></div>
+            </div>
+            <div id="score">Score: 0</div>
+            <div>Level: <span id="level">1</span></div>
+            <div>House: <span id="house">Forks</span></div>
+        </div>
+        
+        <div id="blockchain">
+            <div>🪙 Ledger Coins: <span class="ledger-coin" id="coins">0</span></div>
+            <div>💎 Relics: <span class="relic" id="relics">0</span></div>
+            <div>⛓️ Chain Status: <span id="chainStatus">Disconnected</span></div>
+            <button id="connectWallet">Connect Wallet</button>
+        </div>
+        
+        <div id="controls">
+            <div><strong>Controls:</strong></div>
+            <div>WASD/Arrow Keys - Move</div>
+            <div>Space - Jump</div>
+            <div>J - Light Attack</div>
+            <div>K - Heavy Attack</div>
+            <div>L - Shield/Parry</div>
+            <div>Shift - Dash</div>
+        </div>
+        
+        <div id="debug">
+            <div><strong>Debug Console:</strong></div>
+            <div id="debugLogs"></div>
+        </div>
+        
+        <div id="gameOver">
+            <h2 id="gameOverTitle">Game Over</h2>
+            <p id="gameOverMessage">You have fallen in battle...</p>
+            <div id="finalScore">Final Score: 0</div>
+            <button onclick="restartGame()">Restart</button>
+            <button onclick="mintAchievement()">Mint Achievement</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('Script loading...');
+        console.log('Window object:', typeof window);
+        console.log('Document object:', typeof document);
+        
+        let game = null;
+        let player = null;
+        let enemies = [];
+        let particles = [];
+        let keys = {};
+        let frameCount = 0;
+        let gameState = {
+            health: 100,
+            mana: 50,
+            score: 0,
+            level: 1,
+            house: 'Forks',
+            coins: 0,
+            gameOver: false
+        };
+        
+        class Player {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 32;
+                this.height = 32;
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.speed = 200;
+                this.jumpPower = 400;
+                this.gravity = 800;
+                this.onGround = false;
+                this.health = 100;
+                this.mana = 50;
+                this.facingRight = true;
+                this.isAttacking = false;
+                this.attackCooldown = 0;
+                this.invulnerable = 0;
+                console.log('Player created');
+            }
+            
+            update(deltaTime) {
+                // Movement
+                this.velocityX = 0;
+                if (keys['KeyA'] || keys['ArrowLeft']) {
+                    this.velocityX = -this.speed;
+                    this.facingRight = false;
+                }
+                if (keys['KeyD'] || keys['ArrowRight']) {
+                    this.velocityX = this.speed;
+                    this.facingRight = true;
+                }
+                
+                // Jumping
+                if ((keys['Space'] || keys['KeyW']) && this.onGround) {
+                    this.velocityY = -this.jumpPower;
+                    this.onGround = false;
+                }
+                
+                // Attack
+                if (keys['KeyJ'] && this.attackCooldown <= 0) {
+                    this.isAttacking = true;
+                    this.attackCooldown = 0.5;
+                    console.log('Player attacked');
+                }
+                
+                // Physics
+                this.x += this.velocityX * deltaTime;
+                this.y += this.velocityY * deltaTime;
+                this.velocityY += this.gravity * deltaTime;
+                
+                // Ground collision
+                if (this.y >= 400) {
+                    this.y = 400;
+                    this.velocityY = 0;
+                    this.onGround = true;
+                }
+                
+                // Keep in bounds
+                this.x = Math.max(0, Math.min(this.x, 1000));
+                
+                // Update cooldowns
+                this.attackCooldown = Math.max(0, this.attackCooldown - deltaTime);
+                this.invulnerable = Math.max(0, this.invulnerable - deltaTime);
+                
+                if (this.attackCooldown <= 0) {
+                    this.isAttacking = false;
+                }
+            }
+            
+            render(ctx) {
+                // Draw player
+                ctx.fillStyle = this.isAttacking ? '#ff6b6b' : '#4a90e2';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Draw head
+                ctx.fillStyle = '#fdbcb4';
+                ctx.fillRect(this.x + 8, this.y + 4, 8, 8);
+                
+                // Draw sword if attacking
+                if (this.isAttacking) {
+                    ctx.fillStyle = '#c0c0c0';
+                    ctx.fillRect(this.x + (this.facingRight ? this.width : -8), this.y + 8, 8, 2);
+                }
+            }
+            
+            getBounds() {
+                return { x: this.x, y: this.y, width: this.width, height: this.height };
+            }
+            
+            getAttackBounds() {
+                if (!this.isAttacking) return null;
+                const attackWidth = 40;
+                const attackX = this.facingRight ? this.x + this.width : this.x - attackWidth;
+                return { x: attackX, y: this.y, width: attackWidth, height: this.height };
+            }
+            
+            takeDamage(damage) {
+                if (this.invulnerable > 0) return;
+                this.health = Math.max(0, this.health - damage);
+                this.invulnerable = 1;
+                console.log(`Player took ${damage} damage. Health: ${this.health}`);
+                
+                if (this.health <= 0) {
+                    console.log('Player died!');
+                    gameState.gameOver = true;
+                }
+            }
+        }
+        
+        class Enemy {
+            constructor(type, x, y) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.width = 32;
+                this.height = 32;
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.gravity = 800;
+                this.onGround = false;
+                this.health = 30;
+                this.maxHealth = 30;
+                this.damage = 15;
+                this.speed = 50;
+                this.target = null;
+                this.isAttacking = false;
+                this.attackCooldown = 0;
+                this.facingRight = true;
+                this.isDead = false;
+                
+                // Color based on type
+                this.color = type === 'forkling' ? '#ff4444' : 
+                           type === 'coinGolem' ? '#ffd700' : '#4444ff';
+                
+                console.log(`${type} enemy created`);
+            }
+            
+            update(deltaTime, player) {
+                if (this.isDead) return;
+                
+                this.target = player;
+                const distance = this.getDistanceToTarget();
+                
+                if (distance < 200) {
+                    // Move towards player
+                    const direction = this.target.x > this.x ? 1 : -1;
+                    this.velocityX = direction * this.speed;
+                    this.facingRight = direction > 0;
+                    
+                    // Attack if close
+                    if (distance < 40 && this.attackCooldown <= 0) {
+                        this.isAttacking = true;
+                        this.attackCooldown = 2;
+                    }
+                } else {
+                    this.velocityX = 0;
+                }
+                
+                // Physics
+                this.x += this.velocityX * deltaTime;
+                this.y += this.velocityY * deltaTime;
+                this.velocityY += this.gravity * deltaTime;
+                
+                // Ground collision
+                if (this.y >= 400) {
+                    this.y = 400;
+                    this.velocityY = 0;
+                    this.onGround = true;
+                }
+                
+                this.attackCooldown = Math.max(0, this.attackCooldown - deltaTime);
+                if (this.attackCooldown <= 0) {
+                    this.isAttacking = false;
+                }
+            }
+            
+            render(ctx) {
+                if (this.isDead) return;
+                
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Draw eyes
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(this.x + 6, this.y + 6, 4, 4);
+                ctx.fillRect(this.x + 18, this.y + 6, 4, 4);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(this.x + 7, this.y + 7, 2, 2);
+                ctx.fillRect(this.x + 19, this.y + 7, 2, 2);
+                
+                // Health bar
+                if (this.health < this.maxHealth) {
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(this.x, this.y - 8, this.width, 4);
+                    ctx.fillStyle = '#4ade80';
+                    ctx.fillRect(this.x, this.y - 8, this.width * (this.health / this.maxHealth), 4);
+                }
+            }
+            
+            getBounds() {
+                return { x: this.x, y: this.y, width: this.width, height: this.height };
+            }
+            
+            getDistanceToTarget() {
+                if (!this.target) return Infinity;
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            takeDamage(damage) {
+                this.health = Math.max(0, this.health - damage);
+                console.log(`${this.type} took ${damage} damage. Health: ${this.health}`);
+                
+                if (this.health <= 0) {
+                    this.isDead = true;
+                    gameState.score += 50;
+                    console.log(`${this.type} died`);
+                }
+            }
+        }
+        
+        class Particle {
+            constructor(type, x, y) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.velocityX = (Math.random() - 0.5) * 200;
+                this.velocityY = (Math.random() - 0.5) * 200;
+                this.life = 1.0;
+                this.maxLife = 1.0;
+                this.size = 3;
+                this.color = type === 'damage' ? '#ff4444' : '#ffffff';
+            }
+            
+            update(deltaTime) {
+                this.x += this.velocityX * deltaTime;
+                this.y += this.velocityY * deltaTime;
+                this.velocityY += 200 * deltaTime;
+                this.life -= deltaTime;
+            }
+            
+            render(ctx) {
+                const alpha = this.life / this.maxLife;
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+                ctx.restore();
+            }
+        }
+        
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+        
+        function updateUI() {
+            try {
+                document.getElementById('health').textContent = gameState.health;
+                document.getElementById('mana').textContent = Math.floor(gameState.mana);
+                document.getElementById('score').textContent = `Score: ${gameState.score}`;
+                document.getElementById('level').textContent = gameState.level;
+                document.getElementById('house').textContent = gameState.house;
+                document.getElementById('coins').textContent = gameState.coins;
+                
+                const healthPercentage = (gameState.health / 100) * 100;
+                document.getElementById('healthFill').style.width = `${healthPercentage}%`;
+                
+                const manaPercentage = (gameState.mana / 50) * 100;
+                document.getElementById('manaFill').style.width = `${manaPercentage}%`;
+            } catch (error) {
+                console.error('UI update error:', error);
+            }
+        }
+        
+        function gameLoop(currentTime = 0) {
+            if (!game || !game.ctx) {
+                console.error('Game not initialized properly');
+                return;
+            }
+            
+            const deltaTime = (currentTime - game.lastTime) / 1000;
+            game.lastTime = currentTime;
+            
+            frameCount++;
+            
+            // Debug: Log every 60 frames (about once per second)
+            if (frameCount % 60 === 0) {
+                console.log('Game loop running, frame:', frameCount, 'FPS:', Math.round(1 / deltaTime));
+            }
+            
+            // Update player
+            if (player) {
+                player.update(deltaTime);
+            }
+            
+            // Update enemies
+            enemies.forEach((enemy, index) => {
+                enemy.update(deltaTime, player);
+                if (enemy.isDead) {
+                    enemies.splice(index, 1);
+                }
+            });
+            
+            // Update particles
+            particles.forEach((particle, index) => {
+                particle.update(deltaTime);
+                if (particle.life <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+            
+            // Spawn enemies
+            if (enemies.length < 3 && Math.random() < 0.01) {
+                const types = ['forkling', 'coinGolem', 'nullShade'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                const x = player.x + (Math.random() - 0.5) * 400;
+                const y = 400;
+                enemies.push(new Enemy(type, x, y));
+                console.log(`Spawned ${type} enemy`);
+            }
+            
+            // Check collisions
+            enemies.forEach(enemy => {
+                if (checkCollision(player.getBounds(), enemy.getBounds())) {
+                    if (enemy.isAttacking && !player.invulnerable) {
+                        player.takeDamage(enemy.damage);
+                        particles.push(new Particle('damage', player.x + player.width/2, player.y));
+                    }
+                }
+            });
+            
+            if (player.isAttacking) {
+                const attackBounds = player.getAttackBounds();
+                enemies.forEach(enemy => {
+                    if (checkCollision(attackBounds, enemy.getBounds())) {
+                        enemy.takeDamage(15);
+                        particles.push(new Particle('hit', enemy.x + enemy.width/2, enemy.y));
+                        gameState.score += 10;
+                    }
+                });
+            }
+            
+            // Render
+            const ctx = game.ctx;
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, 1024, 576);
+            
+            // Draw ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, 432, 1024, 144);
+            
+            // Draw player
+            if (player) {
+                player.render(ctx);
+            }
+            
+            // Draw enemies
+            enemies.forEach(enemy => enemy.render(ctx));
+            
+            // Draw particles
+            particles.forEach(particle => particle.render(ctx));
+            
+            // Update UI
+            updateUI();
+            
+            // Debug info
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Arial';
+            ctx.fillText(`Enemies: ${enemies.length}`, 10, 20);
+            ctx.fillText(`Particles: ${particles.length}`, 10, 35);
+            ctx.fillText(`Player Health: ${player.health}`, 10, 50);
+            
+            if (!gameState.gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        function initializeGame() {
+            console.log('Initializing game...');
+            
+            const canvas = document.getElementById('gameCanvas');
+            if (!canvas) {
+                throw new Error('Canvas element not found');
+            }
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                throw new Error('Could not get 2D context');
+            }
+            
+            game = {
+                canvas: canvas,
+                ctx: ctx,
+                lastTime: 0
+            };
+            
+            player = new Player(100, 400);
+            
+            // Keyboard events
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+            });
+            
+            window.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+            
+            // Hide loading
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = 'none';
+            }
+            
+            console.log('Game initialized!');
+            
+            // Start game loop
+            console.log('Starting game loop...');
+            gameLoop();
+            console.log('Game loop started');
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, starting game...');
+            console.log('Canvas element exists:', !!document.getElementById('gameCanvas'));
+            console.log('Loading element exists:', !!document.getElementById('loading'));
+            console.log('UI element exists:', !!document.getElementById('ui'));
+            
+            try {
+                initializeGame();
+            } catch (error) {
+                console.error('Game initialization failed:', error);
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.textContent = 'Game failed to load: ' + error.message;
+                }
+            }
+        });
+        
+        // Global functions
+        function restartGame() {
+            console.log('Restarting game...');
+            gameState = {
+                health: 100,
+                mana: 50,
+                score: 0,
+                level: 1,
+                house: 'Forks',
+                coins: 0,
+                gameOver: false
+            };
+            player = new Player(100, 400);
+            enemies = [];
+            particles = [];
+            document.getElementById('gameOver').style.display = 'none';
+            gameLoop();
+        }
+        
+        function mintAchievement() {
+            console.log('Minting achievement...');
+            alert('Achievement minted! (Demo mode)');
+        }
+        
+        // Blockchain functions - wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const connectBtn = document.getElementById('connectWallet');
+            if (connectBtn) {
+                connectBtn.addEventListener('click', () => {
+                    console.log('Connecting wallet...');
+                    document.getElementById('chainStatus').textContent = 'Connected';
+                    document.getElementById('connectWallet').textContent = 'Disconnect';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

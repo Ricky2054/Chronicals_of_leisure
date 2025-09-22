@@ -1,0 +1,42 @@
+[project]
+name = "chronicle-ledger-game"
+description = "Smart contracts for Chronicle of the Ledger game"
+version = "1.0.0"
+
+[project.dependencies]
+pyteal = "^0.23.0"
+algokit-utils = "^9.0.0"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-algorand>=0.1.0",
+]
+
+[project.scripts]
+build = "algokit compile all"
+deploy = "algokit deploy"
+test = "algokit test"
+dev = "algokit dev"
+
+[algokit]
+project_type = "smart-contract"
+python_version = "3.11"
+
+[algokit.networks.testnet]
+algod_url = "https://testnet-api.algonode.cloud"
+algod_token = ""
+indexer_url = "https://testnet-idx.algonode.cloud"
+indexer_token = ""
+
+[algokit.networks.mainnet]
+algod_url = "https://mainnet-api.algonode.cloud"
+algod_token = ""
+indexer_url = "https://mainnet-idx.algonode.cloud"
+indexer_token = ""
+
+[algokit.networks.localnet]
+algod_url = "http://localhost:4001"
+algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+indexer_url = "http://localhost:8980"
+indexer_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"

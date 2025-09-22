@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Working Game</title>
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: Arial; }
+        canvas { border: 2px solid white; display: block; margin: 20px auto; }
+        #info { text-align: center; margin: 20px; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>Working Game</h1>
+        <div id="status">Loading...</div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <script>
+        console.log('=== WORKING GAME STARTING ===');
+        
+        let game = null;
+        let player = null;
+        let keys = {};
+        
+        class Player {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 32;
+                this.height = 32;
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.speed = 200;
+                this.jumpPower = 400;
+                this.gravity = 800;
+                this.onGround = false;
+                console.log('Player created at', x, y);
+            }
+            
+            update(deltaTime) {
+                // Movement
+                this.velocityX = 0;
+                if (keys['KeyA'] || keys['ArrowLeft']) {
+                    this.velocityX = -this.speed;
+                }
+                if (keys['KeyD'] || keys['ArrowRight']) {
+                    this.velocityX = this.speed;
+                }
+                
+                // Jumping
+                if ((keys['Space'] || keys['KeyW']) && this.onGround) {
+                    this.velocityY = -this.jumpPower;
+                    this.onGround = false;
+                }
+                
+                // Physics
+                this.x += this.velocityX * deltaTime;
+                this.y += this.velocityY * deltaTime;
+                this.velocityY += this.gravity * deltaTime;
+                
+                // Ground collision
+                if (this.y >= 500) {
+                    this.y = 500;
+                    this.velocityY = 0;
+                    this.onGround = true;
+                }
+                
+                // Keep in bounds
+                if (this.x < 0) this.x = 0;
+                if (this.x > 768) this.x = 768;
+            }
+            
+            render(ctx) {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+        }
+        
+        function gameLoop(currentTime = 0) {
+            if (!game || !game.ctx) {
+                console.error('Game not initialized');
+                return;
+            }
+            
+            const deltaTime = (currentTime - game.lastTime) / 1000;
+            game.lastTime = currentTime;
+            
+            // Update
+            if (player) {
+                player.update(deltaTime);
+            }
+            
+            // Render
+            game.ctx.clearRect(0, 0, 800, 600);
+            
+            // Draw ground
+            game.ctx.fillStyle = '#333';
+            game.ctx.fillRect(0, 550, 800, 50);
+            
+            // Draw player
+            if (player) {
+                player.render(game.ctx);
+            }
+            
+            // Draw debug info
+            game.ctx.fillStyle = 'white';
+            game.ctx.font = '16px Arial';
+            game.ctx.fillText(`Player: ${Math.round(player.x)}, ${Math.round(player.y)}`, 10, 30);
+            game.ctx.fillText(`FPS: ${Math.round(1 / deltaTime)}`, 10, 50);
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function initializeGame() {
+            console.log('Initializing working game...');
+            
+            const canvas = document.getElementById('gameCanvas');
+            if (!canvas) {
+                throw new Error('Canvas not found');
+            }
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                throw new Error('Context not found');
+            }
+            
+            game = {
+                canvas: canvas,
+                ctx: ctx,
+                lastTime: 0
+            };
+            
+            player = new Player(100, 400);
+            
+            // Keyboard events
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                console.log('Key down:', e.code);
+            });
+            
+            window.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+            
+            document.getElementById('status').textContent = 'Game Running! Use WASD to move, Space to jump';
+            console.log('Game initialized successfully');
+            
+            gameLoop();
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, starting working game...');
+            try {
+                initializeGame();
+            } catch (error) {
+                console.error('Game failed:', error);
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+            }
+        });
+        
+        console.log('=== WORKING GAME SCRIPT LOADED ===');
+    </script>
+</body>
+</html>
