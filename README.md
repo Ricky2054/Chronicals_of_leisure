@@ -1,3 +1,5 @@
+Contract Address:https://lora.algokit.io/testnet/account/2HYM5FI67XY4WUW36UGG7WBILEUSTD257DJQCXEACNQNHDYOXZDXAMRQX4
+
 # Chronicle of the Ledger
 
 A 2D RPG platformer with Algorand blockchain integration, built with React and HTML5 Canvas.
